@@ -1,0 +1,17 @@
+# On part d'un Linux léger avec Python
+FROM python:3.13-slim
+
+# On crée un dossier de travail
+WORKDIR /app
+
+# On copie nos fichiers de ton PC vers le conteneur
+COPY requirements.txt .
+COPY healthcare_dataset.csv .
+COPY migrate.py .
+
+# On installe les librairies
+#RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt
+
+# On lance le script
+CMD ["python", "migrate.py"]

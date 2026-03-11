@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  # La base de données
+  mongodb:
+    image: mongo:latest
+    container_name: bdd_hopital
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # Le script Python
+  migration_python:
+    build: .
+    container_name: script_migration
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:
