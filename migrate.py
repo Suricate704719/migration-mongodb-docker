@@ -25,7 +25,7 @@ def migrer_vers_mongodb(donnees):
     print("2. Connexion à la base de données MongoDB locale...")
     try:
         # Connexion à ton moteur mongod.exe qui tourne en arrière-plan
-        client = MongoClient("mongodb://mongodb:27017/")
+        client = MongoClient("mongodb://admin:HopitalPassword2026!@mongodb:27017/")
         
         # On crée une base de données nommée "hopital" et une collection "patients"
         db = client['hopital']
