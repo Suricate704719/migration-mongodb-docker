@@ -1,37 +1,51 @@
-# 🏥 Migration de Données Médicales vers MongoDB (Projet DataSoluTech)
+# Documentation Technique : Migration MongoDB & Docker
 
-## 🎯 Contexte de la Mission
-Ce projet a été réalisé pour le compte de DataSoluTech afin de répondre aux problèmes de scalabilité d'un client du secteur médical. L'objectif est de migrer des données patients depuis un fichier plat (CSV) vers une base de données NoSQL (MongoDB), tout en conteneurisant l'environnement avec Docker pour garantir la portabilité, la sécurité et la scalabilité de l'infrastructure.
+## 1. Contexte du projet
+Ce dépôt contient les scripts et la configuration nécessaires pour migrer les données médicales d'un client (format CSV) vers un environnement Big Data scalable horizontalement. La solution repose sur une base de données NoSQL (MongoDB) conteneurisée via Docker.
 
-## ⚙️ Logique de Migration et Tests d'Intégrité
-Le transfert des données est automatisé par le script Python `migrate.py` (processus ETL) :
+## 2. Logique de migration (ETL)
+Le processus de migration est géré par le script Python `migrate.py`.
+* **Extraction :** Lecture du fichier source `healthcare_dataset.csv` via la librairie Pandas.
+* **Transformation et intégrité :** Nettoyage des chaînes de caractères (uniformisation de la casse pour éviter les doublons), vérification du typage, et conversion du DataFrame en dictionnaire BSON.
+* **Chargement :** Purge de la collection cible (idempotence du script) et injection en lot (`insert_many`) dans MongoDB.
 
-1. **Extraction :** Lecture sécurisée du dataset `healthcare_dataset.csv` à l'aide de la librairie Pandas.
-2. **Transformation et Tests d'intégrité :**
-   Avant l'insertion, le script s'assure de la qualité de la donnée :
-   - Vérification du typage des colonnes (ex: s'assurer que l'âge est un entier, le montant facturé un décimal).
-   - Nettoyage des chaînes de caractères pour éviter les incohérences.
-   - Gestion et audit des valeurs manquantes ou des potentiels doublons.
-   - Conversion du tableau en liste de dictionnaires (format BSON compatible MongoDB).
-3. **Chargement :** Connexion à l'instance MongoDB et exécution de la commande `insert_many` pour une insertion en lot optimisée.
+## 3. Modélisation : Schéma de la base de données
+Bien que MongoDB soit "schema-less", la collection respecte une structure de document précise pour garantir la cohérence des données exploitées.
 
-## 🗂️ Schéma de la Base de Données
-Bien que MongoDB soit "schema-less" (sans schéma rigide), nous avons défini une structure de document claire pour maintenir la cohérence des données médicales.
-
-* **Base de données :** `medical_db`
+* **Base de données :** `hopital`
 * **Collection :** `patients`
-* **Exemple d'un Document type (Format JSON) :**
-
+* **Structure d'un document type :**
 ```json
 {
-  "_id": {"$oid": "64b8f..."},
-  "Patient_Name": "Jean Dupont",
-  "Age": 45,
-  "Gender": "Male",
-  "Blood_Type": "O+",
-  "Medical_Condition": "Diabetes",
-  "Date_of_Admission": "2023-10-12",
-  "Doctor": "Dr. Smith",
-  "Hospital": "Hopital Necker",
-  "Billing_Amount": 1250.50
+  "_id": {"$oid": "Identifiant_unique_genere"},
+  "Patient_Name": "String",
+  "Age": "Integer",
+  "Gender": "String",
+  "Blood_Type": "String",
+  "Medical_Condition": "String",
+  "Date_of_Admission": "Date (YYYY-MM-DD)",
+  "Doctor": "String",
+  "Hospital": "String",
+  "Billing_Amount": "Float"
 }
+```
+
+## 4. Sécurité, Authentification et Rôles
+La base de données est sécurisée dès l'initialisation du conteneur. Aucun accès anonyme n'est permis.
+* **Authentification :** L'accès root est protégé par des identifiants stricts gérés via un fichier `.env` (ignoré du dépôt public).
+* **Rôle Administrateur (Root) :** L'utilisateur `admin` possède des droits d'administration globaux sur le cluster.
+* **Rôle Applicatif (Data Worker) :** Via le script `init-mongo.js`, un rôle restreint `data_worker` est créé automatiquement. Le script Python l'utilise pour se connecter, limitant ses droits aux seules actions de lecture et d'écriture sur la base de données `hopital` (Principe du moindre privilège).
+
+## 5. Guide de déploiement local
+Pour exécuter ce projet localement :
+
+1. Clonez ce dépôt et créez un fichier nommé `.env` à la racine du projet, en respectant ce modèle :
+   ```env
+   MONGO_ROOT_USER=votre_nom_utilisateur_admin
+   MONGO_ROOT_PASSWORD=votre_mot_de_passe_fort
+2. Placez le fichier source `healthcare_dataset.csv` à la racine du répertoire (ignoré du dépôt pour des raisons de confidentialité).
+3. À la racine du projet, exécutez la commande d'orchestration :
+   ```bash
+   docker-compose up --build
+   ```
+4. MongoDB va s'initialiser, créer les rôles sécurisés, puis le script Python effectuera la migration. Les données sont persistées sur l'hôte grâce au volume Docker `mongo_data`.

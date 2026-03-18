@@ -1,17 +1,17 @@
-version: '3.8'
-
 services:
   # La base de données
   mongodb:
     image: mongo:latest
     container_name: bdd_hopital
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: HopitalPassword2026!    
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}   
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      # On injecte le script de création du compte Data Worker
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
 
   # Le script Python
   migration_python:
@@ -19,6 +19,9 @@ services:
     container_name: script_migration
     depends_on:
       - mongodb
+    environment:
+      # On donne l'adresse avec le compte restreint au script Python
+      MONGO_URI: mongodb://data_worker:WorkerPassword2026!@mongodb:27017/hopital
 
 volumes:
   mongo_data:

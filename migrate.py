@@ -1,6 +1,7 @@
 import pandas as pd
 from pymongo import MongoClient
 import sys
+import os # Ajout de os pour lire les variables d'environnement
 
 def nettoyer_et_preparer_donnees(fichier_csv):
     print("1. Lecture et nettoyage du fichier CSV...")
@@ -25,8 +26,11 @@ def migrer_vers_mongodb(donnees):
     print("2. Connexion à la base de données MongoDB locale...")
     try:
         # Connexion à ton moteur mongod.exe qui tourne en arrière-plan
-        client = MongoClient("mongodb://admin:HopitalPassword2026!@mongodb:27017/")
-        
+        # client = MongoClient("mongodb://admin:HopitalPassword2026!@mongodb:27017/")
+        # On récupère l'URI de connexion injectée par Docker, ou on met une valeur par défaut
+        uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+        client = MongoClient(uri)
+
         # On crée une base de données nommée "hopital" et une collection "patients"
         db = client['hopital']
         collection = db['patients']
